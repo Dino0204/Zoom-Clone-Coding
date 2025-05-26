@@ -2,3 +2,24 @@
 // -> 브라우저가 자동적으로 프로토콜을 변경하거나 서버 설정에 따라 다르게 처리되기 때문
 // -> 따라서 프로토콜을 명시적으로 지정하는 것이 좋음
 const socket = new WebSocket(`ws://${window.location.host}`);
+
+socket.addEventListener("open", () => {
+  console.log("✅ Connected to the server");
+});
+
+socket.addEventListener("message", (message) => {
+  console.log(
+    "New message:",
+    message.data,
+    message.timeStamp,
+    "from the server"
+  );
+});
+
+socket.addEventListener("close", () => {
+  console.log("❌ Disconnected from the server");
+});
+
+setTimeout(() => {
+  socket.send("Hello from the browser!");
+}, 10000);

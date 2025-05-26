@@ -20,10 +20,21 @@ const wss = new WebSocket.Server({ server });
 
 // ws event
 // socket: 클라이언트와 연결된 소켓 객체
-// on: 이벤트 리스너
-const handleConnection = (socket) => console.log("User connected");
-wss.on("connection", handleConnection);
+// on: 이벤트 리스너 == addEventListener
+wss.on("connection", (socket) => {
+  console.log("✅ Connected to the browser");
+  socket.send("Welcome to the server");
+
+  socket.on("message", (message) => {
+    console.log(message.toString("utf8"));
+  });
+
+  socket.on("close", () => {
+    console.log("❌ Disconnected from the browser");
+  });
+});
 
 // http, ws protocol
-const handleListen = () => console.log("Listening on http://localhost:3000");
-server.listen(3000, handleListen);
+server.listen(3000, () => {
+  console.log("Listening on http://localhost:3000");
+});
