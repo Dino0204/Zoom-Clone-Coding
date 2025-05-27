@@ -1,41 +1,86 @@
-// ws 연결 시 http로도 연결 가능한 경우가 있음
-// -> 브라우저가 자동적으로 프로토콜을 변경하거나 서버 설정에 따라 다르게 처리되기 때문
-// -> 따라서 프로토콜을 명시적으로 지정하는 것이 좋음
-const socket = new WebSocket(`ws://${window.location.host}`);
+const socket = io();
 
-const messageList = document.querySelector("ul");
-const messageForm = document.querySelector("#message");
-const nickForm = document.querySelector("#nick");
+const welcome = document.querySelector("#welcome");
+const form = welcome.querySelector("form");
 
-const makeMessage = (type, payload) => {
-  const message = { type, payload };
-  return JSON.stringify(message);
+const room = document.querySelector("#room");
+room.hidden = true;
+
+let roomName;
+
+const showRoom = () => {
+  welcome.hidden = true;
+  room.hidden = false;
+
+  const h3 = room.querySelector("h3");
+  h3.innerText = `Room: ${roomName}`;
+
+  const msgForm = room.querySelector("#msg");
+  const nameForm = room.querySelector("#name");
+
+  msgForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const input = msgForm.querySelector("input");
+    // emit은 비동기 함수이기 때문에 input.value를 비우기 전에 저장 후 전송해야 함
+    const value = input.value;
+
+    socket.emit("new_message", input.value, roomName, () => {
+      addMessage(`You: ${value}`);
+    });
+    input.value = "";
+  });
+
+  nameForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const input = nameForm.querySelector("input");
+    // emit은 비동기 함수이기 때문에 input.value를 비우기 전에 저장 후 전송해야 함
+    const value = input.value;
+
+    socket.emit("nickname", input.value);
+  });
 };
 
-socket.addEventListener("open", () => {
-  console.log("✅ Connected to the server");
-});
-
-socket.addEventListener("close", () => {
-  console.log("❌ Disconnected from the server");
-});
-
-messageForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-
-  const input = messageForm.querySelector("input");
-  socket.send(makeMessage("new_message", input.value));
-
+const addMessage = (message) => {
+  const ul = room.querySelector("ul");
   const li = document.createElement("li");
-  li.innerText = `You: ${input.value}`;
-  messageList.append(li);
+  li.innerText = message;
+  ul.appendChild(li);
+};
+
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  const input = form.querySelector("input");
+  socket.emit("enter_room", input.value, showRoom);
+
+  roomName = input.value;
 
   input.value = "";
 });
 
-nickForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const input = nickForm.querySelector("input");
-  socket.send(makeMessage("nickname", input.value));
-  input.value = "";
+socket.on("welcome", (nickname) => {
+  addMessage(`${nickname} joined!`);
+});
+
+socket.on("bye", (nickname) => {
+  addMessage(`${nickname} left ㅠㅠ!`);
+});
+
+socket.on("new_message", (message) => {
+  addMessage(message);
+});
+
+socket.on("room_change", (rooms) => {
+  const roomList = welcome.querySelector("ul");
+  roomList.innerHTML = "";
+
+  if (rooms.length === 0) {
+    return;
+  }
+
+  rooms.forEach((room) => {
+    const li = document.createElement("li");
+    li.innerText = room;
+    roomList.appendChild(li);
+  });
 });
